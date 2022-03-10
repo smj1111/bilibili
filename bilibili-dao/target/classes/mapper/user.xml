@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sun.bilibili.dao.UserDao">
+    <select id="getUserByPhone" parameterType="java.lang.String" resultType="com.sun.bilibili.domain.User">
+        select
+            *
+        from
+            t_user
+        where
+            phone = #{phone}
+    </select>
+
+    <select id="getUserById" parameterType="java.lang.Long" resultType="com.sun.bilibili.domain.User">
+        select
+            *
+        from
+            t_user
+        where
+            id = #{id}
+    </select>
+
+    <select id="getUserInfoByUserId" parameterType="java.lang.Long" resultType="com.sun.bilibili.domain.UserInfo">
+        select
+            *
+        from
+            t_user_info
+        where
+            userId = #{userId}
+    </select>
+
+    <insert id="addUser" parameterType="com.sun.bilibili.domain.User" useGeneratedKeys="true" keyProperty="id">
+        insert into
+            t_user(
+                phone,
+                email,
+                password,
+                salt,
+                createTime
+            )values (
+                #{phone},
+                #{email},
+                #{password},
+                #{salt},
+                #{createTime}
+            )
+    </insert>
+
+    <insert id="addUserInfo" parameterType="com.sun.bilibili.domain.UserInfo" >
+        insert into
+            t_user_info(
+            userId,
+            nick,
+            avatar,
+            sign,
+            gender,
+            birth,
+            createTime
+        )values (
+            #{userId},
+            #{nick},
+            #{avatar},
+            #{sign},
+            #{gender},
+            #{birth},
+            #{createTime}
+                )
+    </insert>
+
+    <update id="updateUserInfos" parameterType="com.sun.bilibili.domain.UserInfo" >
+        update
+            t_user_info
+        set
+            <if test="nick != null and nick != '' ">
+                nick=#{nick},
+            </if>
+            <if test="avatar != null ">
+                avatar=#{avatar},
+            </if>
+            <if test="sign != null ">
+                sign=#{sign},
+            </if>
+            <if test="birth != null and birth != '' ">
+                birth=#{birth},
+            </if>
+            <if test="gender != null and gender != '' ">
+                gender=#{gender},
+            </if>
+            updateTime=#{updateTime}
+        where
+            userId=#{userId}
+    </update>
+
+    <update id="updateUsers" parameterType="com.sun.bilibili.domain.User" >
+        update
+        t_user
+        set
+        <if test="phone != null and phone != '' ">
+            phone=#{phone},
+        </if>
+        <if test="email != null and email != '' ">
+            email=#{email},
+        </if>
+        <if test="password != null and password != '' ">
+            password=#{password},
+        </if>
+        updateTime=#{updateTime}
+        where
+        id=#{id}
+    </update>
+
+</mapper>
