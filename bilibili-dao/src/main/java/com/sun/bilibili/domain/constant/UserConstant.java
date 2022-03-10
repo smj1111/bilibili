@@ -12,4 +12,8 @@ public interface UserConstant {
 
     public static final String GENDER_NICK="新用户";
 
+    public static final String USER_FOLLOWING_GROUP_TYPE_DEFAULT="2";
+
+    public static final String USER_FOLLOWING_GROUP_ALL_NAME = "全部关注";
+
 }
