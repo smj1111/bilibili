@@ -28,6 +28,7 @@ public class UserFollowingService {
 
     @Autowired
     private UserService userService;
+    private List<FollowingGroup> userFollowingGroups;
 
     @Transactional
     public void addUserFollowings(UserFollowing userFollowing){
@@ -84,11 +85,36 @@ public class UserFollowingService {
         return result;
     }
 
-//    public List<UserFollowing> getUserFans(Long userId){
-//        List<UserFollowing> fanList=userFollowingDao.getUserFans(userId);
-//        Set<Long> fanIdSet = fanList.stream().map(UserFollowing::getUserId).collect(Collectors.toSet());
-//        List<UserInfo> userInfoList =new ArrayList<>();
-//
-//    }
+    public List<UserFollowing> getUserFans(Long userId){
+        List<UserFollowing> fanList=userFollowingDao.getUserFans(userId);
+        Set<Long> fanIdSet = fanList.stream().map(UserFollowing::getUserId).collect(Collectors.toSet());
+        List<UserInfo> userInfoList =new ArrayList<>();
+        if(fanIdSet.size()>0){
+            userInfoList=userService.getUserInfoByUserIds(fanIdSet);
+        }
+        List<UserFollowing> followingList=userFollowingDao.getUserFollowings(userId);
+        for(UserFollowing fan:fanList){
+            for(UserInfo userInfo:userInfoList){
+                if (fan.getUserId().equals(userInfo.getUserId())){
+                    userInfo.setUserFollowed(false);
+                    fan.setUserInfo(userInfo);
+                }
+            }
+            for(UserFollowing following:followingList){
+                if(following.getFollowingId().equals(fan.getUserId()))fan.getUserInfo().setUserFollowed(true);
+            }
+        }
+        return fanList;
+    }
 
+    public Long addUserFollowingGroups(FollowingGroup followingGroup) {
+        followingGroup.setCreateTime(new Date());
+        followingGroup.setType(UserConstant.USER_FOLLOWING_GROUP_TYPE_USER);
+        followingGroupService.addFollowingGroup(followingGroup);
+        return followingGroup.getId();
+    }
+
+    public List<FollowingGroup> getUserFollowingGroups(Long userId) {
+        return followingGroupService.getUserFollowingGroups(userId);
+    }
 }

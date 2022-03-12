@@ -1,7 +1,9 @@
 package com.sun.bilibili.api;
 
+import com.alibaba.fastjson.JSONObject;
 import com.sun.bilibili.api.support.UserSupport;
 import com.sun.bilibili.domain.JsonResponse;
+import com.sun.bilibili.domain.PageResult;
 import com.sun.bilibili.domain.User;
 import com.sun.bilibili.domain.UserInfo;
 import com.sun.bilibili.service.UserService;
@@ -58,6 +60,13 @@ public class UserApi {
         user.setId(userId);
         userService.updateUsers(user);
         return JsonResponse.success();
+    }
+
+    @GetMapping("/user-infos")
+    public JsonResponse<PageResult<UserInfo>> pageListUserInfos(@RequestParam Integer no,@RequestParam Integer size,String nick){
+        Long userId=userSupport.getCurrentUserId();
+        JSONObject params=new JSONObject();
+
     }
 
 }
