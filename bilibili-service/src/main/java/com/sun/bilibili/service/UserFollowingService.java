@@ -84,11 +84,11 @@ public class UserFollowingService {
         return result;
     }
 
-    public List<UserFollowing> getUserFans(Long userId){
-        List<UserFollowing> fanList=userFollowingDao.getUserFans(userId);
-        Set<Long> fanIdSet = fanList.stream().map(UserFollowing::getUserId).collect(Collectors.toSet());
-        List<UserInfo> userInfoList =new ArrayList<>();
-
-    }
+//    public List<UserFollowing> getUserFans(Long userId){
+//        List<UserFollowing> fanList=userFollowingDao.getUserFans(userId);
+//        Set<Long> fanIdSet = fanList.stream().map(UserFollowing::getUserId).collect(Collectors.toSet());
+//        List<UserInfo> userInfoList =new ArrayList<>();
+//
+//    }
 
 }
