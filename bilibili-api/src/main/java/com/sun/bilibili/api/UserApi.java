@@ -6,12 +6,15 @@ import com.sun.bilibili.domain.JsonResponse;
 import com.sun.bilibili.domain.PageResult;
 import com.sun.bilibili.domain.User;
 import com.sun.bilibili.domain.UserInfo;
+import com.sun.bilibili.service.UserFollowingService;
 import com.sun.bilibili.service.UserService;
 import com.sun.bilibili.service.util.RSAUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 public class UserApi {
@@ -20,6 +23,9 @@ public class UserApi {
 
     @Autowired
     private UserSupport userSupport;
+
+    @Autowired
+    private UserFollowingService userFollowingService;
 
     @GetMapping("/users")
     public JsonResponse<User> getUserInfo(){
@@ -66,7 +72,16 @@ public class UserApi {
     public JsonResponse<PageResult<UserInfo>> pageListUserInfos(@RequestParam Integer no,@RequestParam Integer size,String nick){
         Long userId=userSupport.getCurrentUserId();
         JSONObject params=new JSONObject();
-
+        params.put("no",no);
+        params.put("size",size);
+        params.put("nick",nick);
+        params.put("userId",userId);
+        PageResult<UserInfo> result=userService.pageListUserInfos(params);
+        if(result.getTotal()>0){
+            List<UserInfo> checkedUserInfoList=userFollowingService.checkFollowingStatus(result.getList(),userId);
+            result.setList(checkedUserInfoList);
+        }
+        return new JsonResponse<>(result);
     }
 
 }
