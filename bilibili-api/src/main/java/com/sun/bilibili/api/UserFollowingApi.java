@@ -10,10 +10,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Controller
+@RestController
 public class UserFollowingApi {
 
     @Autowired
@@ -52,7 +53,7 @@ public class UserFollowingApi {
         return new JsonResponse<>(groupId);
     }
 
-    @GetMapping("/user-followings-groups")
+    @GetMapping("/user-following-groups")
     public JsonResponse<List<FollowingGroup>> getUserFollowingGroups(){
         Long userId=userSupport.getCurrentUserId();
         List<FollowingGroup> list=userFollowingService.getUserFollowingGroups(userId);

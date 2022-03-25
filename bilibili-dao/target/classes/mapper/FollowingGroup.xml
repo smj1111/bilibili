@@ -32,10 +32,10 @@
     
     <insert id="addFollowingGroup" parameterType="com.sun.bilibili.domain.FollowingGroup" useGeneratedKeys="true" keyProperty="id">
         insert into
-            t_user_group(
+            t_following_group(
                 userId,
-                'name',
-                'type',
+                name,
+                type,
                 createTime
             )values (
                 #{userId},
@@ -49,7 +49,7 @@
         select
             *
         from
-            t_user_group
+            t_following_group
         where
             userId=#{userId}
     </select>
