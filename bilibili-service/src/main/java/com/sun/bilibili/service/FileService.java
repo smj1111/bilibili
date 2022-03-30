@@ -26,18 +26,24 @@ public class FileService {
             return dbFileMd5.getUrl();
         }
         String url= fastDFSUtil.uploadFileBySlices(slice,fileMd5,sliceNo,totalSliceNo);
+//        if (StringUtil.isNullOrEmpty(url))return "9";
         if(!StringUtil.isNullOrEmpty(url)){
             dbFileMd5=new File();
-            dbFileMd5.setUrl(url);;
-            dbFileMd5.setCreateTime(new Date());;
+            dbFileMd5.setUrl(url);
+            dbFileMd5.setCreateTime(new Date());
             dbFileMd5.setType(fastDFSUtil.getFileType(slice));
             dbFileMd5.setMd5(fileMd5);
             fileDao.addFile(dbFileMd5);
+//            return "666";
         }
         return url;
     }
 
     public String getFileMd5(MultipartFile file) throws Exception {
         return MD5Util.getFileMD5(file);
+    }
+
+    public File getFileByMd5(String fileMd5) {
+        return fileDao.getFileByMd5(fileMd5);
     }
 }
