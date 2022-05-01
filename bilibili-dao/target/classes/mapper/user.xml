@@ -179,4 +179,16 @@
         where
             refreshToken=#{refreshToken}
     </select>
+    
+    <select id="batchGetUserInfoByUserIds" parameterType="java.util.Set" resultType="com.sun.bilibili.domain.UserInfo">
+        select
+            *
+        from
+            t_user_info
+        where
+        userId in
+        <foreach collection="userIdList" item="userId" open="(" close=")" separator=",">
+            #{userId}
+        </foreach>
+    </select>
 </mapper>

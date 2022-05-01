@@ -1,13 +1,22 @@
 package com.sun.bilibili.domain;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.stereotype.Component;
+
 import java.util.Date;
 
+@Document(indexName = "user-infos")
 public class UserInfo {
 
+    @Id
     private long id;
 
     private long userId;
 
+    @Field(type = FieldType.Text)
     private String nick;
 
     private String avatar;
@@ -18,8 +27,10 @@ public class UserInfo {
 
     private String birth;
 
+    @Field(type = FieldType.Date)
     private Date createTime;
 
+    @Field(type = FieldType.Date)
     private Date updateTime;
 
     private boolean userFollowed;
