@@ -27,6 +27,7 @@
             <artifactId>spring-boot-starter-aop</artifactId>
             <version>2.5.1</version>
         </dependency>
+
     </dependencies>
 
     <properties>

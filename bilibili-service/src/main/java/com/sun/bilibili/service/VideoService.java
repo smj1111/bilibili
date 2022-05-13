@@ -1,20 +1,48 @@
 package com.sun.bilibili.service;
 
+import com.mysql.cj.x.protobuf.MysqlxCrud;
 import com.sun.bilibili.dao.VideoDao;
+//import com.sun.bilibili.domain.*;
 import com.sun.bilibili.domain.*;
 import com.sun.bilibili.domain.exception.ConditionException;
 import com.sun.bilibili.service.util.FastDFSUtil;
+import com.sun.bilibili.service.util.ImageUtil;
 import com.sun.bilibili.service.util.IpUtil;
 import eu.bitwalker.useragentutils.UserAgent;
+import org.apache.mahout.cf.taste.common.TasteException;
+import org.apache.mahout.cf.taste.impl.common.FastByIDMap;
+import org.apache.mahout.cf.taste.impl.model.GenericDataModel;
+import org.apache.mahout.cf.taste.impl.model.GenericPreference;
+import org.apache.mahout.cf.taste.impl.model.GenericUserPreferenceArray;
+import org.apache.mahout.cf.taste.impl.neighborhood.NearestNUserNeighborhood;
+import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
+import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
+import org.apache.mahout.cf.taste.impl.similarity.UncenteredCosineSimilarity;
+import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.model.PreferenceArray;
+import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
+import org.apache.mahout.cf.taste.recommender.RecommendedItem;
+import org.apache.mahout.cf.taste.recommender.Recommender;
+import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
+import org.apache.mahout.cf.taste.similarity.UserSimilarity;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+
 
 @Service
 public class VideoService {
@@ -30,6 +58,14 @@ public class VideoService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    private ImageUtil imageUtil;
+
+    private static final int FRAME_NO = 256;
 
     @Transactional
     public void adaVideos(Video video) {
@@ -264,4 +300,105 @@ public class VideoService {
     public Integer getVideoViewCounts(Long videoId) {
         return videoDao.getVideoViewCounts(videoId);
     }
+
+    public List<Video> recommend(Long userId) throws TasteException {
+        List<UserPreference> list = videoDao.getAllUserPreference();
+        //创建数据模型
+        DataModel dataModel = this.createDataModel(list);
+        //获取用户相似程度
+        UserSimilarity similarity = new UncenteredCosineSimilarity(dataModel);
+        System.out.println(similarity.userSimilarity(11, 12));
+        //获取用户邻居
+        UserNeighborhood userNeighborhood = new NearestNUserNeighborhood(2, similarity, dataModel);
+        long[] ar = userNeighborhood.getUserNeighborhood(userId);
+        //构建推荐器
+        Recommender recommender = new GenericUserBasedRecommender(dataModel, userNeighborhood, similarity);
+        //推荐视频
+        List<RecommendedItem> recommendedItems = recommender.recommend(userId, 5);
+        List<Long> itemIds = recommendedItems.stream().map(RecommendedItem::getItemID).collect(Collectors.toList());
+        return videoDao.batchGetVideosByIds(itemIds);
+    }
+
+
+    public List<Video> recommendByItem(Long userId, Long itemId, int howMany) throws TasteException {
+        List<UserPreference> list = videoDao.getAllUserPreference();
+        //创建数据模型
+        DataModel dataModel = this.createDataModel(list);
+        //获取内容相似程度
+        ItemSimilarity similarity = new UncenteredCosineSimilarity(dataModel);
+        GenericItemBasedRecommender genericItemBasedRecommender = new GenericItemBasedRecommender(dataModel, similarity);
+        // 物品推荐相拟度，计算两个物品同时出现的次数，次数越多任务的相拟度越高
+        List<Long> itemIds = genericItemBasedRecommender.recommendedBecause(userId, itemId, howMany)
+                .stream()
+                .map(RecommendedItem::getItemID)
+                .collect(Collectors.toList());
+        //推荐视频
+        return videoDao.batchGetVideosByIds(itemIds);
+    }
+
+    private DataModel createDataModel(List<UserPreference> userPreferenceList) {
+        FastByIDMap<PreferenceArray> fastByIdMap = new FastByIDMap<>();
+        Map<Long, List<UserPreference>> map = userPreferenceList.stream().collect(Collectors.groupingBy(UserPreference::getUserId));
+        Collection<List<UserPreference>> list = map.values();
+        for(List<UserPreference> userPreferences : list){
+            GenericPreference[] array = new GenericPreference[userPreferences.size()];
+            for(int i = 0; i < userPreferences.size(); i++){
+                UserPreference userPreference = userPreferences.get(i);
+                GenericPreference item = new GenericPreference(userPreference.getUserId(), userPreference.getVideoId(), userPreference.getValue());
+                array[i] = item;
+            }
+            fastByIdMap.put(array[0].getUserID(), new GenericUserPreferenceArray(Arrays.asList(array)));
+        }
+        return new GenericDataModel(fastByIdMap);
+    }
+
+    public List<VideoBinaryPicture> convertVideoToImage(Long videoId, String fileMd5) throws Exception{
+        com.sun.bilibili.domain.File file = fileService.getFileByMd5(fileMd5);
+        String filePath = "/Users/hat/tmpfile/fileForVideoId" + videoId + "." + file.getType();
+        fastDFSUtil.downLoadFile(file.getUrl(), filePath);
+        FFmpegFrameGrabber fFmpegFrameGrabber = FFmpegFrameGrabber.createDefault(filePath);
+        fFmpegFrameGrabber.start();
+        int ffLength = fFmpegFrameGrabber.getLengthInFrames();
+        Frame frame;
+        Java2DFrameConverter converter = new Java2DFrameConverter();
+        int count = 1;
+        List<VideoBinaryPicture> pictures = new ArrayList<>();
+        for(int i=1; i<= ffLength; i ++){
+            long timestamp = fFmpegFrameGrabber.getTimestamp();
+            frame = fFmpegFrameGrabber.grabImage();
+            if(count == i){
+                if(frame == null){
+                    throw new ConditionException("无效帧");
+                }
+                BufferedImage bufferedImage = converter.getBufferedImage(frame);
+                ByteArrayOutputStream os = new ByteArrayOutputStream();
+                ImageIO.write(bufferedImage, "png", os);
+                InputStream inputStream = new ByteArrayInputStream(os.toByteArray());
+                //输出黑白剪影文件
+                java.io.File outputFile = java.io.File.createTempFile("convert-" + videoId + "-", ".png");
+                BufferedImage binaryImg = imageUtil.getBodyOutline(bufferedImage, inputStream);
+                ImageIO.write(binaryImg, "png", outputFile);
+                //有的浏览器或网站需要把图片白色的部分转为透明色，使用以下方法可实现
+                imageUtil.transferAlpha(outputFile, outputFile);
+                //上传视频剪影文件
+                String imgUrl = fastDFSUtil.uploadCommonFile(outputFile, "png");
+                VideoBinaryPicture videoBinaryPicture = new VideoBinaryPicture();
+                videoBinaryPicture.setFrameNo(i);
+                videoBinaryPicture.setUrl(imgUrl);
+                videoBinaryPicture.setVideoId(videoId);
+                videoBinaryPicture.setVideoTimestamp(timestamp);
+                pictures.add(videoBinaryPicture);
+                count += FRAME_NO;
+                //删除临时文件
+                outputFile.delete();
+            }
+        }
+        //删除临时文件
+        java.io.File tmpFile=new java.io.File(filePath);
+        tmpFile.delete();
+        //批量添加视频剪影文件
+        videoDao.batchAddVideoBinaryPictures(pictures);
+        return pictures;
+    }
+
 }

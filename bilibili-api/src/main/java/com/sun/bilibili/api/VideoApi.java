@@ -5,11 +5,13 @@ import com.sun.bilibili.domain.*;
 import com.sun.bilibili.service.ElasticSearchService;
 import com.sun.bilibili.service.VideoService;
 import org.apache.ibatis.annotations.Param;
+import org.apache.mahout.cf.taste.common.TasteException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -145,6 +147,19 @@ public class VideoApi {
     public JsonResponse<Integer> getVideoViewCounts(Long videoId){
         Integer count=videoService.getVideoViewCounts(videoId);
         return new JsonResponse<>(count);
+    }
+
+    @GetMapping("/recommendations")
+    public JsonResponse<List<Video>> recommend() throws TasteException {
+        Long userId=userSupport.getCurrentUserId();
+        List<Video> list=videoService.recommend(userId);
+        return new JsonResponse<>(list);
+    }
+
+    @GetMapping("/video-frames")
+    public JsonResponse<List<VideoBinaryPicture>> captureVideoFrame(@RequestParam Long videoId,@RequestParam String fildMD5) throws Exception {
+        List<VideoBinaryPicture> list=videoService.convertVideoToImage(videoId,fildMD5);
+        return new JsonResponse<>(list);
     }
 
 }
